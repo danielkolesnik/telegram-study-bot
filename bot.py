@@ -109,10 +109,13 @@ def handle_categories_list(message):
     users[message.chat.id]['previous_state'] = STATES.MAIN
 
 
-@bot.callback_query_handler(func=lambda call: json.loads(call.data)['type'] == CALLBACK.CATEGORY.SELECT and
+@bot.callback_query_handler(func=lambda call: check_session(call.message) and
   users[call.message.chat.id]['current_state'] == STATES.CATEGORIES.ALL)
 def handle_products_list_categorized(call):
     data = json.loads(call.data)
+    print("\t\t[LOGGING START]")
+    print(data)
+    print("\t\t[LOGGING END]")
     category = next((category for category in categories if category['id'] == data['payload']))
     conn = sqlite3.connect(config.db_source)
     products_categorized = get_products(conn, category)
