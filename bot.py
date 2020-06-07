@@ -2,6 +2,7 @@
 import telebot
 from telebot import types
 import sqlite3
+import json
 from datetime import date, timedelta
 from datetime import datetime
 import time
@@ -82,17 +83,17 @@ def handle_categories_list(message):
     categories_keyboard = types.InlineKeyboardMarkup()
 
     for category in categories:
-        category_button = types.InlineKeyboardButton(text=category['name'], callback_data={'type': CALLBACK.CATEGORY.SELECT, 'payload': category['id']})
+        category_button = types.InlineKeyboardButton(text=category['name'], callback_data=json.dumps({'type': CALLBACK.CATEGORY.SELECT, 'payload': category['id']}))
         categories_keyboard.add(category_button)
 
     bot.send_message(message.chat.id, "Select category to brows:", reply_markup=categories_keyboard)
 
 
-@bot.callback_query_handler(func=lambda call: call.data['type'] == CALLBACK.CATEGORY.SELECT)
+@bot.callback_query_handler(func=lambda call: json.loads(call.data)['type'] == CALLBACK.CATEGORY.SELECT)
 def handle_category_selection(call):
-
-    category = next((category for category in categories if category['id'] == call.data['payload']))
-    conn = sqlite3.connect('data')
+    data = json.loads(call.data)
+    category = next((category for category in categories if category['id'] == data['payload']))
+    conn = sqlite3.connect(config.db_source)
     products_cursor = conn.execute("SELECT p.id, p.name, p.price, p.description, p.category_id, c.name FROM products p "
                       "INNER JOIN categories c ON p.category_id = c.id WHERE p.category_id = ?", [category.id])
 
