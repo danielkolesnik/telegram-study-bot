@@ -66,7 +66,7 @@ def main(message):
     users[message.chat.id]['current_state'] = STATES.MAIN
     users[message.chat.id]['previous_state'] = STATES.MAIN
 
-    bot.send_message(message.chat.id, MESSAGES.MAIN.ASK)
+    bot.send_message(message.chat.id, MESSAGES.MAIN.ASK, reply_markup=keyboard)
 
 
 def check_session(message):
