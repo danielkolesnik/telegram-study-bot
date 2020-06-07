@@ -95,3 +95,6 @@ def handle_category_selection(call):
     conn = sqlite3.connect('data')
     products_cursor = conn.execute("SELECT p.id, p.name, p.price, p.description, p.category_id, c.name FROM products p "
                       "INNER JOIN categories c ON p.category_id = c.id WHERE p.category_id = ?", [category.id])
+
+if __name__ == "__main__":
+    bot.polling(none_stop=True)
