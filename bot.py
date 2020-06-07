@@ -121,6 +121,7 @@ def handle_products_list_categorized(call):
     products_categorized = get_products(conn, category)
 
     render_products_list(products_categorized, call.message)
+    conn.close()
 
     users[call.message.chat.id]['current_state'] = STATES.PRODUCTS.BY_CATEGORY
     users[call.message.chat.id]['previous_state'] = STATES.CATEGORIES.ALL
