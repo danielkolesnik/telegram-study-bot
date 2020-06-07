@@ -113,18 +113,25 @@ def handle_categories_list(message):
   users[call.message.chat.id]['current_state'] == STATES.CATEGORIES.ALL)
 def handle_products_list_categorized(call):
     data = json.loads(call.data)
-    print("\t\t[LOGGING START]")
-    print(data)
-    print("\t\t[LOGGING END]")
-    category = next((category for category in categories if category['id'] == data['payload']))
-    conn = sqlite3.connect(config.db_source)
-    products_categorized = get_products(conn, category)
 
-    render_products_list(products_categorized, call.message)
-    conn.close()
+    if data['type'] == CALLBACK.CATEGORY.SELECT and users[call.message.chat.id]['current_state'] == STATES.CATEGORIES.ALL:
+        print("\t\t[LOGGING START]")
+        print(data)
+        print("\t\t[LOGGING END]")
+        category = next((category for category in categories if category['id'] == data['payload']))
+        conn = sqlite3.connect(config.db_source)
+        products_categorized = get_products(conn, category)
 
-    users[call.message.chat.id]['current_state'] = STATES.PRODUCTS.BY_CATEGORY
-    users[call.message.chat.id]['previous_state'] = STATES.CATEGORIES.ALL
+        render_products_list(products_categorized, call.message)
+        conn.close()
+
+        users[call.message.chat.id]['current_state'] = STATES.PRODUCTS.BY_CATEGORY
+        users[call.message.chat.id]['previous_state'] = STATES.CATEGORIES.ALL
+
+    # <-- HANDLE REST OF CALLBACKS HERE
+
+    else:
+        main(call.message)
 
 
 def handle_product_info(message):

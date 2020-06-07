@@ -99,7 +99,7 @@ def get_categories(connection):
 def get_products(connection, category=None):
     if category is not None:
         cursor = connection.execute("SELECT p.id, p.name, p.price, p.description, p.category_id, c.name FROM products p "
-                     "INNER JOIN categories c ON p.category_id = c.id WHERE p.category_id = ?", [category])
+                     "INNER JOIN categories c ON p.category_id = c.id WHERE p.category_id = ?", [category['id']])
     else:
         cursor = connection.execute("SELECT p.id, p.name, p.price, p.description, p.category_id, c.name FROM products p "
                                     "INNER JOIN categories c ON p.category_id = c.id")
