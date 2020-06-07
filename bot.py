@@ -9,13 +9,13 @@ import re
 import calendar
 
 # local dependencies
-import config
+from config import token
 from constants import BUTTONS, STATES, MESSAGES, CALLBACK
 
 # create TeleBot instance
 from models import get_categories, get_products, get_baskets, get_deliveries, get_orders
 
-bot = telebot.TeleBot(config.token)
+bot = telebot.TeleBot(token)
 # Setup connection to the DB
 conn = sqlite3.connect('data')
 
