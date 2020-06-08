@@ -290,13 +290,15 @@ def handle_callbacks(call):
     elif data['type'] == CALLBACK.ORDER.DELIVERY_SELECTED:
         conn = sqlite3.connect(config.db_source)
         delivery = get_delivery_by_id(conn, data['payload'])
-        basket = get_or_create_basket_by_user(call.from_user.id)
+        basket = get_or_create_basket_by_user(conn, call.from_user.id)
         now = datetime.now()
         created_at = now.strftime("%Y-%m-%d %H:%M:%S")
 
         order = create_order(conn, delivery['id'], basket['id'], created_at)
         message = MESSAGES.ORDER.INFO(order)
         bot.send_message(call.message.chat.id, message, parse_mode="Markdown")
+
+        conn.close()
 
     else:
         main(call.message)
