@@ -167,6 +167,9 @@ def handle_products_list_categorized(call):
         product_keyboard.add(product_basket_button, product_buy_now_button)
         bot.send_message(call.message.chat.id, message, parse_mode='Markdown', reply_markup=product_keyboard)
 
+        users[call.message.chat.id]['current_state'] = STATES.PRODUCTS.INFO
+        users[call.message.chat.id]['previous_state'] = STATES.ANY
+
     elif data['type'] == CALLBACK.PRODUCT.ADD_TO_BASKET:
         conn = sqlite3.connect(config.db_source)
         new_products: tuple = ()

@@ -128,14 +128,14 @@ def get_baskets(connection):
 
 def get_or_create_basket_by_user(connection, user, products=()):
 
-    count_cursor = connection.execute("SELECT COUNT(b.id) FROM baskets b WHERE b.user = ?", (user,))
-    if count_cursor[0] == 0:
+    baskets_count = connection.execute("SELECT COUNT() FROM baskets b WHERE b.user = ?", (user,)).fetchone()[0]
+    if baskets_count == 0:
         connection.execute("INSERT INTO baskets (user) VALUES (?)", (user,))
 
-    basket_id_cursor = connection.execute("SELECT b.id FROM baskets b WHERE b.user = ?", (user,))
+    basket_id = connection.execute("SELECT b.id FROM baskets b WHERE b.user = ?", (user,)).fetchone()[0]
     if len(products) > 0:
         for product in products:
-            connection.execute("INSERT INTO products_to_baskets (basket_id, product_id) VALUES (?, ?)", (basket_id_cursor[0], product['id']))
+            connection.execute("INSERT INTO products_to_baskets (basket_id, product_id) VALUES (?, ?)", (basket_id, product['id']))
 
     cursor = connection.execute("SELECT b.id, b.user FROM baskets b WHERE b.user = ?", (user,))
 
