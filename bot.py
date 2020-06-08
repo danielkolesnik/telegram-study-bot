@@ -270,7 +270,7 @@ def handle_callbacks(call):
                     callback_data=json.dumps({'type': CALLBACK.ORDER.CANCEL})
                 )
             )
-            bot.send_message(call.message.chat.id, "Continue with order?", order_keyboard)
+            bot.send_message(call.message.chat.id, "Continue with order?", reply_markup=order_keyboard)
 
         else:
             print("User added new delivery")
