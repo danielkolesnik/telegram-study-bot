@@ -21,7 +21,19 @@ BUTTONS = NestedNamespace({
     "PRODUCT": {
         "INFO": "Info",
         "ADD_TO_BASKET": "Add to Cart",
-        "BUY_NOW": "Buy now"
+    },
+    "BASKET": {
+        "BUY_NOW": "Buy now",
+        "CLEAR": "Clear cart"
+    },
+    "DELIVERY": {
+        "CREATE": "Create new",
+        "ACCEPT": "Save",
+        "CANCEL": "Cancel"
+    },
+    "ORDER": {
+        "ACCEPT": "Order",
+        "CANCEL": "Cancel"
     }
 })
 
@@ -34,7 +46,27 @@ CALLBACK = NestedNamespace({
         "ADD_TO_BASKET": "PRODUCT@BASKET",
         "BUY_NOW": "PRODUCT@BUY_NOW"
     },
-    "ORDER": "ORDER"
+    "BASKET": {
+        "CLEAR": "BASKET@CLEAR"
+    },
+    "DELIVERY": {
+        "SELECTED_FOR_ORDER": "DELIVERY@SELECTED_FOR_ORDER",
+        "CREATE": "DELIVERY@CREATE",
+        "SAVE": "DELIVERY@SAVE",
+        "CANCEL": "DELIVERY@CANCEL"
+    },
+    "ORDER": {
+        "INIT": "ORDER@INIT",
+        "ACCEPT": "ORDER@APPROVE",
+        "CANCEL": "ORDER@CANCEL",
+        "DELIVERY_SELECTED": "ORDER@DELIVERY_SELECTED"
+    }
+})
+
+DELIVERY_CREATION_STAGE = NestedNamespace({
+    "STREET": "STREET",
+    "HOUSE": "HOUSE",
+    "NOTE": "NOTE",
 })
 
 STATES = NestedNamespace({
@@ -53,13 +85,18 @@ STATES = NestedNamespace({
     "BASKET": {
         "SHOW": "BASKET@SHOW"
     },
+    "ORDER": {
+        "DELIVERY_SELECTION": "ORDER@DELIVERY_SELECTION",
+        "DELIVERY_CREATION": "ORDER@DELIVERY_CREATION",
+        "ACCEPT": "ORDER@ACCEPT"
+    },
     "ANY": "ANY"
 })
 Price:               {1}
 Category:            {2}
 Description:         {3}
 
-def create_info_message(product):
+def create_product_message(product):
     message = "```" \
               "\n{0}" \
               "\n==================" \
@@ -74,14 +111,39 @@ def create_basket_message(basket):
     message = "```" \
               "\nYour Cart:" \
               "\n=================="
-    message += "\nProduct\t\tPrice"
+    message += "\nProduct\t\t\t\tPrice"
     message += "\n=================="
     price: float = 0
     for product in basket['products']:
-        message += "\n{0}\t\t{1}".format(product['name'], product['price'])
+        message += "\n{0}....................{1}".format(product['name'], product['price'])
         price += float(product['price'])
-    message += "\nTOTAL\t\t{0}" \
+    message += "\n=================="\
+               "\nTOTAL:....................{0}" \
                "\n```".format(price)
+    return message
+
+
+def create_order_message(order):
+    message = "```" \
+              "\nThank you for your Order!" \
+              "\nQuick recap:" \
+              "\n=================="
+    message += "\nProduct\t\t\t\tPrice"
+    message += "\n=================="
+    price: float = 0
+    for product in order['basket']['products']:
+        message += "\n{0}....................{1}".format(product['name'], product['price'])
+        price += float(product['price'])
+    message += "\n==================" \
+               "\nTOTAL:...............{0}".format(price)
+    message += "\n==================" \
+               "\nDelivery Option" \
+               "\n==================" \
+               "\nStreet...............{0}" \
+               "\nHouse...............{1}" \
+               "\nNote:" \
+               "\n{2}" \
+               "```".format(order['delivery']['street'], order['delivery']['house'], order['delivery']['note'])
     return message
 
 
@@ -90,7 +152,10 @@ MESSAGES = NestedNamespace({
         "ASK": "What R u want me 2 do?"
     },
     "PRODUCT": {
-        "INFO": create_info_message,
+        "INFO": create_product_message,
         "BASKET": create_basket_message
+    },
+    "ORDER": {
+        "INFO": create_order_message
     }
 })

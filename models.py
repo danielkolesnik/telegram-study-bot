@@ -151,10 +151,46 @@ def get_or_create_basket_by_user(connection, user, products=()):
     return map_baskets(cursor, connection)[0]
 
 
-def get_deliveries(connection):
-    cursor = connection.execute("SELECT d.id, d.street, d.house, d.note, d.user, d.phone FROM deliveries d")
+def clear_basket(connection, basket_id: None):
+    if basket_id is not None:
+        connection.execute("DELETE FROM products_to_baskets WHERE basket_id=?", (str(basket_id),))
+        connection.commit()
+        time.sleep(0.2)
+
+
+
+def get_deliveries(connection, user = None):
+    cursor = None
+    if user is not None:
+        cursor = connection.execute("SELECT d.id, d.street, d.house, d.note, d.user, d.phone FROM deliveries d WHERE d.user = ?", (str(user),))
+    else:
+        cursor = connection.execute("SELECT d.id, d.street, d.house, d.note, d.user, d.phone FROM deliveries d")
+
     return map_deliveries(cursor)
 
+
+def check_delivery_exists(connection, user):
+    delivery_count = connection.execute("SELECT COUNT() FROM deliveries WHERE user = ?", (str(user),))
+    if delivery_count == 0:
+        return False
+    else:
+        return True
+
+
+def create_delivery(connection, user, street="", house="", note="", phone=""):
+    cursor = connection.cursor()
+    cursor.execute("INSERT INTO deliveries (user, street, house, note, phone) VALUES (?, ?, ?, ?, ?)", (str(user), street, house, note, phone))
+    delivery_id = cursor.lastrowid
+    cursor.commit()
+    return get_delivery_by_id(connection, delivery_id)
+
+
+
+def get_delivery_by_id(connection, delivery_id=None):
+    if delivery_id is not None:
+        cursor = connection.execute("d.id, d.street, d.house, d.note, d.user, d.phone FROM deliveries d WHERE d.id = ?", (delivery_id,))
+        res = map_deliveries(cursor)[0]
+        return res
 
 def get_orders(connection):
     cursor = connection.execute(
@@ -164,5 +200,21 @@ def get_orders(connection):
     return map_orders(cursor, connection)
 
 
+def get_order_by_id(connection, order_id=None):
+    if order_id is not None:
+        cursor = connection.execute(
+            "SELECT o.id, o.created_at, o.delivery_id, o.basket_id, d.id, d.street, d.house, d.note, d.user, d.phone, b.id, b.user FROM orders o "
+            "INNER JOIN deliveries d ON d.id = o.delivery_id "
+            "INNER JOIN baskets b ON b.id = o.basket_id WHERE o.id=?", (order_id,))
+        return map_orders(cursor, connection)[0]
+
+
+def create_order(connection, delivery_id, basket_id, created_at=""):
+    cursor = connection.cursor()
+    cursor.execute("INSERT INTO orders (created_at, delivery_id, basket_id) VALUES (?, ?, ?)", (created_at, delivery_id, basket_id))
+    order_id = cursor.lastrowid
+    cursor.commit()
+
+    return get_order_by_id(connection, order_id)
 
 

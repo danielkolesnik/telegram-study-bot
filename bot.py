@@ -1,18 +1,17 @@
 # Outsource
+from datetime import datetime
+
 import telebot
 from telebot import types
 import sqlite3
 import json
-from datetime import date, timedelta
-from datetime import datetime
 import time
-import re
-import calendar
 
 # local dependencies
 import config
-from constants import BUTTONS, STATES, MESSAGES, CALLBACK
-from models import get_categories, get_products, get_baskets, get_deliveries, get_orders, get_product_by_id, get_or_create_basket_by_user
+from constants import BUTTONS, STATES, MESSAGES, CALLBACK, DELIVERY_CREATION_STAGE
+from models import get_categories, get_products, get_baskets, get_deliveries, get_orders, get_product_by_id, get_or_create_basket_by_user, check_delivery_exists, clear_basket, create_delivery, \
+    get_delivery_by_id, create_order
 
 # create TeleBot instance
 bot = telebot.TeleBot(config.token)
@@ -79,14 +78,22 @@ def start(message):
         bot.send_message(message.chat.id, "Hello, " + message.chat.username + "! Welcome to our improvised shop!")
     global users
     users[message.chat.id] = {
+        'username': message.chat.username,
         'current_state': STATES.MAIN,
         'previous_state': STATES.MAIN,
-        'username': message.chat.username}
+        'delivery_creation_stage': None,
+        'street': None,
+        'house': None,
+        'note': None
+    }
     main(message)
 
 
-@bot.message_handler(func=lambda message: check_session(message) and message.text == BUTTONS.MAIN.CATEGORIES, content_types=["text"])
+@bot.message_handler(func=lambda message: message.text == BUTTONS.MAIN.CATEGORIES, content_types=["text"])
 def handle_categories_list(message):
+    if not check_session(message):
+        return start(message)
+
     categories_keyboard = types.InlineKeyboardMarkup()
 
     for category in categories:
@@ -122,10 +129,14 @@ def handle_basket(message):
     basket_message = MESSAGES.PRODUCT.BASKET(basket)
     basket_keyboard = types.InlineKeyboardMarkup()
     order_button = types.InlineKeyboardButton(
-        text=BUTTONS.PRODUCT.BUY_NOW,
-        callback_data=json.dumps({'type': CALLBACK.ORDER, 'payload': basket['id']})
+        text=BUTTONS.BASKET.BUY_NOW,
+        callback_data=json.dumps({'type': CALLBACK.ORDER.INIT, 'payload': basket['id']})
     )
-    basket_keyboard.add(order_button)
+    clear_btn = types.InlineKeyboardButton(
+        text=BUTTONS.BASKET.CLEAR,
+        callback_data=json.dumps({'type': CALLBACK.BASKET.CLEAR, 'payload': basket['id']})
+    )
+    basket_keyboard.row(order_button, clear_btn)
     bot.send_message(message.chat.id, basket_message, parse_mode='Markdown', reply_markup=basket_keyboard)
 
     users[message.chat.id]['current_state'] = STATES.BASKET.SHOW
@@ -135,8 +146,9 @@ def handle_basket(message):
 @bot.callback_query_handler(func=lambda call: check_session(call.message))
 def handle_callbacks(call):
     data = json.loads(call.data)
+    global users
 
-    print(data)  # log
+    print(data)  # log callback data
 
     if data['type'] == CALLBACK.CATEGORY.SELECT and users[call.message.chat.id]['current_state'] == STATES.CATEGORIES.ALL:
         category = next((category for category in categories if category['id'] == data['payload']))
@@ -159,11 +171,7 @@ def handle_callbacks(call):
             text=BUTTONS.PRODUCT.ADD_TO_BASKET,
             callback_data=json.dumps({'type': CALLBACK.PRODUCT.ADD_TO_BASKET, 'payload': product['id']})
         )
-        product_buy_now_button = types.InlineKeyboardButton(
-            text=BUTTONS.PRODUCT.BUY_NOW,
-            callback_data=json.dumps({'type': CALLBACK.PRODUCT.BUY_NOW, 'payload': product['id']})
-        )
-        product_keyboard.add(product_basket_button, product_buy_now_button)
+        product_keyboard.add(product_basket_button)
         bot.send_message(call.message.chat.id, message, parse_mode='Markdown', reply_markup=product_keyboard)
 
         users[call.message.chat.id]['current_state'] = STATES.PRODUCTS.INFO
@@ -172,17 +180,21 @@ def handle_callbacks(call):
     elif data['type'] == CALLBACK.PRODUCT.ADD_TO_BASKET:
         conn = sqlite3.connect(config.db_source)
         new_products: tuple = (next((product for product in products if product['id'] == data['payload']), get_product_by_id(conn, data['payload'])),)
-        print("New products", new_products)
+
         basket = get_or_create_basket_by_user(conn, call.from_user.id, new_products)
         conn.close()
         message = MESSAGES.PRODUCT.BASKET(basket)
         basket_keyboard = types.InlineKeyboardMarkup()
-        order_button = types.InlineKeyboardButton(
-            text=BUTTONS.PRODUCT.BUY_NOW,
-            callback_data=json.dumps({'type': CALLBACK.ORDER, 'payload': basket['id']})
+        order_btn = types.InlineKeyboardButton(
+            text=BUTTONS.BASKET.BUY_NOW,
+            callback_data=json.dumps({'type': CALLBACK.ORDER.INIT})
         )
-        basket_keyboard.add(order_button)
-        print(message)
+        clear_btn = types.InlineKeyboardButton(
+            text=BUTTONS.BASKET.CLEAR,
+            callback_data=json.dumps({'type': CALLBACK.BASKET.CLEAR, 'payload': basket['id']})
+        )
+        basket_keyboard.row(order_btn, clear_btn)
+
         bot.send_message(call.message.chat.id, message, parse_mode='Markdown', reply_markup=basket_keyboard)
 
         if users[call.message.chat.id]['current_state'] == STATES.PRODUCTS.BY_CATEGORY:
@@ -193,28 +205,144 @@ def handle_callbacks(call):
             users[call.message.chat.id]['current_state'] = STATES.PRODUCTS.ADD_TO_BASKET
             users[call.message.chat.id]['previous_state'] = STATES.PRODUCTS.ALL
 
-    elif data['type'] == CALLBACK.PRODUCT.BUY_NOW:
-        pass
 
-    elif data['type'] == CALLBACK.ORDER:
+    elif data['type'] == CALLBACK.ORDER.INIT:
+        delivery_keyboard = types.InlineKeyboardMarkup()
 
-        pass
-    # <-- HANDLE REST OF CALLBACKS HERE
+        if check_delivery_exists(call.from_user.id):
+            conn = sqlite3.connect(config.db_source)
+            user_deliveries = get_deliveries(conn, call.from_user.id)
+            for delivery in user_deliveries:
+                delivery_title = "{0}, {1} (tel.{2})".format(delivery['street'], delivery['house'], delivery['phone'])
+                delivery_keyboard.add(
+                    types.InlineKeyboardButton(
+                        text=delivery_title,
+                        callback_data=json.dumps({'type': CALLBACK.ORDER.DELIVERY_SELECTED, 'payload': delivery['id']})
+                    )
+                )
+        delivery_keyboard.add(
+            types.InlineKeyboardButton(
+                text=BUTTONS.DELIVERY.CREATE,
+                callback_data=json.dumps({'type': CALLBACK.DELIVERY.CREATE})
+            )
+        )
+
+        bot.send_message(call.message.chat.id, "Select the Appropriate Delivery Option:", reply_markup=delivery_keyboard)
+
+        users[call.message.chat.id]['previous_state'] = users[call.message.chat.id]['current_state']
+        users[call.message.chat.id]['current_state'] = STATES.ORDER.DELIVERY_SELECTION
+
+    elif data['type'] == CALLBACK.BASKET.CLEAR:
+        conn = sqlite3.connect(config.db_source)
+        basket = get_or_create_basket_by_user(conn, call.from_user.id)
+        clear_basket(conn, basket['id'])
+        conn.close()
+        bot.send_message(call.message.chat.id, "Cart Successfully Cleared...")
+
+    elif data['type'] == CALLBACK.DELIVERY.CREATE:
+        bot.send_message(call.message.chat.id, "Please enter new delivery Street Name:")
+        users[call.message.chat.id]['current_state'] = STATES.ORDER.DELIVERY_CREATION
+        users[call.message.chat.id]['previous_state'] = STATES.ORDER.DELIVERY_SELECTION
+        users[call.message.chat.id]['delivery_creation_stage'] = DELIVERY_CREATION_STAGE.STREET
+
+    elif data['type'] == CALLBACK.DELIVERY.SAVE:
+        conn = sqlite3.connect(config.db_source)
+        delivery = create_delivery(
+            conn,
+            call.from_user.id,
+            users[call.message.chat.id]['street'],
+            users[call.message.chat.id]['house'],
+            users[call.message.chat.id]['note']
+
+        )
+        if users[call.message.chat.id]['previous_state'] == STATES.ORDER.DELIVERY_SELECTION:
+            print("User ready to order")
+            order_keyboard = types.InlineKeyboardMarkup()
+
+            order_keyboard.add(
+                types.InlineKeyboardButton(
+                    text=BUTTONS.ORDER.ACCEPT,
+                    callback_data=json.dumps({'type': CALLBACK.ORDER.DELIVERY_SELECTED, 'payload': delivery['id']})
+                ),
+                types.InlineKeyboardButton(
+                    text=BUTTONS.ORDER.CANCEL,
+                    callback_data=json.dumps({'type': CALLBACK.ORDER.CANCEL})
+                )
+            )
+
+        else:
+            print("User added new delivery")
+            bot.send_message(call.message.chat.id, "Delivery successfully created")
+
+        conn.close()
+
+    elif data['type'] == CALLBACK.DELIVERY.CANCEL or data['type'] == CALLBACK.ORDER.CANCEL:
+        users[call.message.chat.id]['street'] = None
+        users[call.message.chat.id]['house'] = None
+        users[call.message.chat.id]['note'] = None
+        users[call.message.chat.id]['delivery_creation_stage'] = None
+        bot.send_message(call.message.chat.id, "Delivery Creation Successfully Discarded")
+        users[call.message.chat.id]['current_state'] = STATES.MAIN
+        users[call.message.chat.id]['previous_state'] = STATES.ORDER.DELIVERY_SELECTION
+
+    elif data['type'] == CALLBACK.ORDER.DELIVERY_SELECTED:
+        conn = sqlite3.connect(config.db_source)
+        delivery = get_delivery_by_id(conn, data['payload'])
+        basket = get_or_create_basket_by_user(call.from_user.id)
+        now = datetime.now()
+        created_at = now.strftime("%Y-%m-%d %H:%M:%S")
+
+        order = create_order(conn, delivery['id'], basket['id'], created_at)
+        message = MESSAGES.ORDER.INFO(order)
+        bot.send_message(call.message.chat.id, message)
 
     else:
         main(call.message)
 
 
-def handle_product_info(message):
-    return None
+@bot.message_handler(content_types=['text'])
+def handle_text_input(message):
+    global users
+    if check_session(message) and users[message.chat.id] is not None:
+        if users[message.chat.id]['current_state'] == STATES.ORDER.DELIVERY_CREATION:
+            delivery_creation_keyboard = types.InlineKeyboardMarkup()
+            delivery_creation_keyboard.add(
+                types.InlineKeyboardButton(
+                    text=BUTTONS.DELIVERY.CANCEL,
+                    callback_data=json.dumps({'type': CALLBACK.DELIVERY.CANCEL})
+                )
+            )
+            if users[message.chat.id]['delivery_creation_stage'] == DELIVERY_CREATION_STAGE.STREET:
+                users[message.chat.id]['street'] = message.text
+                print("USER ENTERED NEW STREET: - {0}".format(message.text))
+                bot.send_message(message.chat.id, "Enter House Number:", reply_markup=delivery_creation_keyboard)
+                users[message.chat.id]['delivery_creation_stage'] = DELIVERY_CREATION_STAGE.HOUSE
+            elif users[message.chat.id]['delivery_creation_stage'] == DELIVERY_CREATION_STAGE.HOUSE:
+                users[message.chat.id]['house'] = message.text
+                print("USER ENTERED NEW HOUSE: - {0}".format(message.text))
+
+                bot.send_message(message.chat.id, "Note(optional):", reply_markup=delivery_creation_keyboard)
+                users[message.chat.id]['delivery_creation_stage'] = DELIVERY_CREATION_STAGE.NOTE
+            elif users[message.chat.id]['delivery_creation_stage'] == DELIVERY_CREATION_STAGE.NOTE:
+                users[message.chat.id]['note'] = message.text
+                print("USER ENTERED NEW NOTE: - {0}".format(message.text))
+                delivery_creation_keyboard = types.InlineKeyboardMarkup()
+                delivery_creation_keyboard.row(
+                    types.InlineKeyboardButton(
+                        text=BUTTONS.DELIVERY.ACCEPT,
+                        callback_data=json.dumps({'type': CALLBACK.DELIVERY.SAVE})
+                    ),
+                    types.InlineKeyboardButton(
+                        text=BUTTONS.DELIVERY.CANCEL,
+                        callback_data=json.dumps({'type': CALLBACK.DELIVERY.CANCEL})
+                    )
+                )
+        else:
+            bot.send_message(message.chat.id, "Sorry I dont know what u want... Try using my keyboard instead..")
+    else:
+        bot.send_message(message.chat.id, "Hey looks like something strange happened, lets try again with `/start`", parse_mode='Markdown')
 
 
-def handle_product_basket(message):
-    return None
-
-
-def handle_product_buy_now(message):
-    return None
 
 
 """
@@ -233,11 +361,7 @@ def render_products_list(products_list, message):
             text=BUTTONS.PRODUCT.ADD_TO_BASKET,
             callback_data=json.dumps({'type': CALLBACK.PRODUCT.ADD_TO_BASKET, 'payload': product['id']})
         )
-        product_buy_now_button = types.InlineKeyboardButton(
-            text=BUTTONS.PRODUCT.BUY_NOW,
-            callback_data=json.dumps({'type': CALLBACK.PRODUCT.BUY_NOW, 'payload': product['id']})
-        )
-        product_keyboard.add(product_info_button, product_basket_button, product_buy_now_button)
+        product_keyboard.add(product_info_button, product_basket_button)
         product_title = product["name"]
         bot.send_message(message.chat.id, product_title, reply_markup=product_keyboard)
         time.sleep(0.4)
