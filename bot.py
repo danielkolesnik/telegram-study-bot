@@ -282,7 +282,7 @@ def handle_callbacks(call):
         users[call.message.chat.id]['house'] = None
         users[call.message.chat.id]['note'] = None
         users[call.message.chat.id]['delivery_creation_stage'] = None
-        bot.send_message(call.message.chat.id, "Delivery Creation Successfully Discarded")
+        bot.send_message(call.message.chat.id, "Delivery Creation Successfully Discarded```\n```Consider using Main Menu to continue..", parse_mode="Markdown")
         users[call.message.chat.id]['current_state'] = STATES.MAIN
         users[call.message.chat.id]['previous_state'] = STATES.ORDER.DELIVERY_SELECTION
 
@@ -322,7 +322,7 @@ def handle_text_input(message):
                 users[message.chat.id]['house'] = message.text
                 print("USER ENTERED NEW HOUSE: - {0}".format(message.text))
 
-                bot.send_message(message.chat.id, "Note(optional):", reply_markup=delivery_creation_keyboard)
+                bot.send_message(message.chat.id, "Note:", reply_markup=delivery_creation_keyboard)
                 users[message.chat.id]['delivery_creation_stage'] = DELIVERY_CREATION_STAGE.NOTE
             elif users[message.chat.id]['delivery_creation_stage'] == DELIVERY_CREATION_STAGE.NOTE:
                 users[message.chat.id]['note'] = message.text
@@ -338,6 +338,13 @@ def handle_text_input(message):
                         callback_data=json.dumps({'type': CALLBACK.DELIVERY.CANCEL})
                     )
                 )
+                delivery = {
+                    'street': users[message.chat.id]['street'],
+                    'house': users[message.chat.id]['house'],
+                    'note': users[message.chat.id]['note']
+                }
+                bot.send_message(message.chat.id, MESSAGES.DELIVERY.INFO(delivery), reply_markup=delivery_creation_keyboard)
+
         else:
             bot.send_message(message.chat.id, "Sorry I dont know what u want... Try using my keyboard instead..")
     else:

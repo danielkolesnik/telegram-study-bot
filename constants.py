@@ -123,6 +123,19 @@ def create_basket_message(basket):
     return message
 
 
+def create_delivery_message(delivery):
+    message = "```" \
+              "\n==================" \
+              "\nDelivery Option" \
+              "\n==================" \
+              "\nStreet...............{0}" \
+              "\nHouse...............{1}" \
+              "\nNote:" \
+              "\n{2}" \
+              "```".format(delivery['street'], delivery['house'], delivery['note'])
+    return message
+
+
 def create_order_message(order):
     message = "```" \
               "\nThank you for your Order!" \
@@ -157,5 +170,8 @@ MESSAGES = NestedNamespace({
     },
     "ORDER": {
         "INFO": create_order_message
+    },
+    "DELIVERY": {
+        "INFO": create_delivery_message
     }
 })
