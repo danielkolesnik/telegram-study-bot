@@ -208,9 +208,9 @@ def handle_callbacks(call):
 
     elif data['type'] == CALLBACK.ORDER.INIT:
         delivery_keyboard = types.InlineKeyboardMarkup()
+        conn = sqlite3.connect(config.db_source)
+        if check_delivery_exists(conn, call.from_user.id):
 
-        if check_delivery_exists(call.from_user.id):
-            conn = sqlite3.connect(config.db_source)
             user_deliveries = get_deliveries(conn, call.from_user.id)
             for delivery in user_deliveries:
                 delivery_title = "{0}, {1} (tel.{2})".format(delivery['street'], delivery['house'], delivery['phone'])
@@ -226,6 +226,7 @@ def handle_callbacks(call):
                 callback_data=json.dumps({'type': CALLBACK.DELIVERY.CREATE})
             )
         )
+        conn.close()
 
         bot.send_message(call.message.chat.id, "Select the Appropriate Delivery Option:", reply_markup=delivery_keyboard)
 
