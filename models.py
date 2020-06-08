@@ -130,21 +130,21 @@ def get_baskets(connection):
 
 def get_or_create_basket_by_user(connection, user, products=()):
 
-    baskets_count = connection.execute("SELECT COUNT() FROM baskets b WHERE b.user = ?", (user,)).fetchone()[0]
+    baskets_count = connection.execute("SELECT COUNT() FROM baskets b WHERE b.user = ?", (str(user),)).fetchone()[0]
     if baskets_count == 0:
         print("Basket not exist, USER - {0}".format(user))
         connection.execute("INSERT INTO baskets (user) VALUES (?)", (user,))
         time.sleep(0.3)
 
-    basket_id = connection.execute("SELECT b.id FROM baskets b WHERE b.user = ?", (user,)).fetchone()[0]
+    basket_id = connection.execute("SELECT b.id FROM baskets b WHERE b.user = ?", (str(user),)).fetchone()[0]
     time.sleep(0.3)
     print("Basket ID - {0}".format(basket_id))
     print("Products to add - {0}".format(len(products)))
     for product in products:
-        connection.execute("INSERT INTO products_to_baskets (basket_id, product_id) VALUES (?, ?)", (basket_id, product['id']))
+        connection.execute("INSERT INTO products_to_baskets (basket_id, product_id) VALUES (?, ?)", (int(basket_id), int(product['id'])))
         time.sleep(0.2)
 
-    cursor = connection.execute("SELECT b.id, b.user FROM baskets b WHERE b.user = ?", (user,))
+    cursor = connection.execute("SELECT b.id, b.user FROM baskets b WHERE b.user = ?", (str(user),))
 
     return map_baskets(cursor, connection)[0]
 
