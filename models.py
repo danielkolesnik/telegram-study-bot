@@ -188,7 +188,7 @@ def create_delivery(connection, user, street="", house="", note="", phone=""):
 
 def get_delivery_by_id(connection, delivery_id=None):
     if delivery_id is not None:
-        cursor = connection.execute("d.id, d.street, d.house, d.note, d.user, d.phone FROM deliveries d WHERE d.id = ?", (delivery_id,))
+        cursor = connection.execute("SELECT d.id, d.street, d.house, d.note, d.user, d.phone FROM deliveries d WHERE d.id = ?", (delivery_id,))
         res = map_deliveries(cursor)[0]
         return res
 
