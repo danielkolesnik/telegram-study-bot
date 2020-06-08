@@ -58,24 +58,24 @@ STATES = NestedNamespace({
 
 
 def create_info_message(product):
-    message = "{0}" \
+    message = "```{0}" \
               "\n==================" \
-              "\n**Price**  |   {1}" \
-              "\n**Category**  |   {2}" \
-              "\n**Description    |   {3}**".format(product['name'], product['price'], product['category']['name'], product['description'])
+              "\n**Price**\t|\t{1}" \
+              "\n**Category**\t|\t{2}" \
+              "\n**Description\t|\t{3}**```".format(product['name'], product['price'], product['category']['name'], product['description'])
     return message
 
 
 def create_basket_message(basket):
-    message = "Your Cart:\n" \
-              "==================\n"
-    message += "Product    |    Price"
-    message += "-----------|---------"
+    message = "Your Cart:" \
+              "\n=================="
+    message += "\nProduct\t|\tPrice"
+    message += "\n----------------------"
     price: float = 0
     for product in basket['products']:
-        message += "{0}    |    {1}".format(product['name'], product['price'])
+        message += "\n{0}\t|\t{1}".format(product['name'], product['price'])
         price += float(product['price'])
-    message += "TOTAL    |    {0}".format(price)
+    message += "\nTOTAL\t|\t{0}".format(price)
     return message
 
 

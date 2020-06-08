@@ -37,8 +37,9 @@ def map_baskets(cursor, connection):
             'user': result_set_row[1]
         }
         baskets_products_cursor = connection.execute(
-            "SELECT p.id, p.name, p.price, p.description, p.category_id, c.name FROM products p "
-            "INNER JOIN categories c ON p.category_id = c.id")
+            "SELECT p.id, p.name, p.price, p.description, p.category_id, c.name FROM products_to_baskets pb "
+            "INNER JOIN products p ON pb.product_id = p.id "
+            "INNER JOIN categories c ON p.category_id = c.id WHERE pb.basket_id = ?", (basket['id'],))
         basket['products'] = map_products(baskets_products_cursor)
         baskets += (basket,)
     return baskets

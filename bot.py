@@ -119,14 +119,14 @@ def handle_home(message):
 def handle_basket(message):
     conn = sqlite3.connect(config.db_source)
     basket = get_or_create_basket_by_user(conn, message.from_user.id)
-    message = MESSAGES.PRODUCT.BASKET(basket)
+    basket_message = MESSAGES.PRODUCT.BASKET(basket)
     basket_keyboard = types.InlineKeyboardMarkup()
     order_button = types.InlineKeyboardButton(
         text=BUTTONS.PRODUCT.BUY_NOW,
         callback_data=json.dumps({'type': CALLBACK.ORDER, 'payload': basket['id']})
     )
     basket_keyboard.add(order_button)
-    bot.send_message(message.chat.id, message, parse_mode='Markdown', reply_markup=basket_keyboard)
+    bot.send_message(message.chat.id, basket_message, parse_mode='Markdown', reply_markup=basket_keyboard)
 
     users[message.chat.id]['current_state'] = STATES.BASKET.SHOW
     users[message.chat.id]['previous_state'] = STATES.ANY
