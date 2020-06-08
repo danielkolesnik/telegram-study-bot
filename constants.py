@@ -13,27 +13,27 @@ class NestedNamespace(SimpleNamespace):
 
 BUTTONS = NestedNamespace({
     "MAIN": {
-        "CATEGORIES": "Show Products By Categories",
-        "PRODUCTS": "Show All Products",
-        "HOME": "Home",
-        "BASKET": "Check Cart"
+        "CATEGORIES": "↘️ Show Products By Categories",
+        "PRODUCTS": "🍜 Show All Products",
+        "HOME": "🏠 Home",
+        "BASKET": "🛒 Check Cart"
     },
     "PRODUCT": {
-        "INFO": "Info",
-        "ADD_TO_BASKET": "Add to Cart",
+        "INFO": "ℹ️ Info",
+        "ADD_TO_BASKET": "🛒 Add to Cart",
     },
     "BASKET": {
-        "BUY_NOW": "Buy now",
-        "CLEAR": "Clear cart"
+        "BUY_NOW": "💳 Buy now",
+        "CLEAR": "🗑️ Clear cart"
     },
     "DELIVERY": {
-        "CREATE": "Create new",
-        "ACCEPT": "Save",
-        "CANCEL": "Cancel"
+        "CREATE": "➕ Create new",
+        "ACCEPT": "✔️ Save",
+        "CANCEL": "❌ Cancel"
     },
     "ORDER": {
-        "ACCEPT": "Order",
-        "CANCEL": "Cancel"
+        "ACCEPT": "✔️ Order",
+        "CANCEL": "❌ Cancel"
     }
 })
 
