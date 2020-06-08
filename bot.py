@@ -297,7 +297,7 @@ def handle_callbacks(call):
         order = create_order(conn, delivery['id'], basket['id'], created_at)
         message = MESSAGES.ORDER.INFO(order)
         bot.send_message(call.message.chat.id, message, parse_mode="Markdown")
-
+        clear_basket(conn, basket['id'])
         conn.close()
 
     else:
