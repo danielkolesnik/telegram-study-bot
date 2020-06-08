@@ -84,8 +84,9 @@ def map_orders(cursor, connection):
             }
         }
         baskets_products_cursor = connection.execute(
-            "SELECT p.id, p.name, p.price, p.description, p.category_id, c.name FROM products p "
-            "INNER JOIN categories c ON p.category_id = c.id")
+            "SELECT p.id, p.name, p.price, p.description, p.category_id, c.name FROM products_to_baskets pb "
+            "INNER JOIN products p ON p.id = pb.product_id "
+            "INNER JOIN categories c ON p.category_id = c.id WHERE pb.basket_id = ?", (result_set_row[3],))
         for products_result_set_row in baskets_products_cursor:
             product = {
                 'id': products_result_set_row[0],
