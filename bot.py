@@ -171,12 +171,10 @@ def handle_callbacks(call):
 
     elif data['type'] == CALLBACK.PRODUCT.ADD_TO_BASKET:
         conn = sqlite3.connect(config.db_source)
-        new_products: tuple = ()
-
-        if data['payload'] is not None:
-            new_products += (next((product for product in products if product['id'] == data['payload']), get_product_by_id(conn, data['payload'])),)
-
+        new_products: tuple = (next((product for product in products if product['id'] == data['payload']), get_product_by_id(conn, data['payload'])),)
+        print("New products", new_products)
         basket = get_or_create_basket_by_user(conn, call.from_user.id, new_products)
+        conn.close()
         message = MESSAGES.PRODUCT.BASKET(basket)
         basket_keyboard = types.InlineKeyboardMarkup()
         order_button = types.InlineKeyboardButton(
