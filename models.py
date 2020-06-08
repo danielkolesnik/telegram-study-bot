@@ -134,6 +134,7 @@ def get_or_create_basket_by_user(connection, user, products=()):
     if baskets_count == 0:
         print("Basket not exist, USER - {0}".format(user))
         connection.execute("INSERT INTO baskets (user) VALUES (?)", (user,))
+        connection.commit()
         time.sleep(0.3)
 
     basket_id = connection.execute("SELECT b.id FROM baskets b WHERE b.user = ?", (str(user),)).fetchone()[0]
@@ -142,6 +143,7 @@ def get_or_create_basket_by_user(connection, user, products=()):
     print("Products to add - {0}".format(len(products)))
     for product in products:
         connection.execute("INSERT INTO products_to_baskets (basket_id, product_id) VALUES (?, ?)", (int(basket_id), int(product['id'])))
+        connection.commit()
         time.sleep(0.2)
 
     cursor = connection.execute("SELECT b.id, b.user FROM baskets b WHERE b.user = ?", (str(user),))
