@@ -343,7 +343,7 @@ def handle_text_input(message):
                     'house': users[message.chat.id]['house'],
                     'note': users[message.chat.id]['note']
                 }
-                bot.send_message(message.chat.id, MESSAGES.DELIVERY.INFO(delivery), reply_markup=delivery_creation_keyboard)
+                bot.send_message(message.chat.id, MESSAGES.DELIVERY.INFO(delivery), parse_mode="Markdown", reply_markup=delivery_creation_keyboard)
 
         else:
             bot.send_message(message.chat.id, "Sorry I dont know what u want... Try using my keyboard instead..")
