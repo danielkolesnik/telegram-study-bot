@@ -181,7 +181,7 @@ def create_delivery(connection, user, street="", house="", note="", phone=""):
     cursor = connection.cursor()
     cursor.execute("INSERT INTO deliveries (user, street, house, note, phone) VALUES (?, ?, ?, ?, ?)", (str(user), street, house, note, phone))
     delivery_id = cursor.lastrowid
-    cursor.commit()
+    connection.commit()
     return get_delivery_by_id(connection, delivery_id)
 
 
@@ -213,7 +213,7 @@ def create_order(connection, delivery_id, basket_id, created_at=""):
     cursor = connection.cursor()
     cursor.execute("INSERT INTO orders (created_at, delivery_id, basket_id) VALUES (?, ?, ?)", (created_at, delivery_id, basket_id))
     order_id = cursor.lastrowid
-    cursor.commit()
+    connection.commit()
 
     return get_order_by_id(connection, order_id)
 

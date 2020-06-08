@@ -156,7 +156,7 @@ def create_order_message(order):
                "\nHouse...............{1}" \
                "\nNote:" \
                "\n{2}" \
-               "```".format(order['delivery']['street'], order['delivery']['house'], order['delivery']['note'])
+               "\n```".format(order['delivery']['street'], order['delivery']['house'], order['delivery']['note'])
     return message
 
 
