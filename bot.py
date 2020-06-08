@@ -132,9 +132,8 @@ def handle_basket(message):
     users[message.chat.id]['previous_state'] = STATES.ANY
 
 
-@bot.callback_query_handler(func=lambda call: check_session(call.message) and
-  users[call.message.chat.id]['current_state'] == STATES.CATEGORIES.ALL)
-def handle_products_list_categorized(call):
+@bot.callback_query_handler(func=lambda call: check_session(call.message))
+def handle_callbacks(call):
     data = json.loads(call.data)
 
     print(data)  # log
@@ -185,6 +184,7 @@ def handle_products_list_categorized(call):
             callback_data=json.dumps({'type': CALLBACK.ORDER, 'payload': basket['id']})
         )
         basket_keyboard.add(order_button)
+        print(message)
         bot.send_message(call.message.chat.id, message, parse_mode='Markdown', reply_markup=basket_keyboard)
 
         if users[call.message.chat.id]['current_state'] == STATES.PRODUCTS.BY_CATEGORY:
