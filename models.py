@@ -20,19 +20,26 @@ def map_products(cursor):
             'price': result_set_row[2],
             'description': result_set_row[3],
             'category_id': result_set_row[4],
-            'category': result_set_row[5]
+            'category': {
+                'id': result_set_row[4],
+                'name': result_set_row[5]
+            }
         }
         products += (product,)
     return products
 
 
-def map_baskets(cursor):
+def map_baskets(cursor, connection):
     baskets = ()
     for result_set_row in cursor:
         basket = {
             'id': result_set_row[0],
             'user': result_set_row[1]
         }
+        baskets_products_cursor = connection.execute(
+            "SELECT p.id, p.name, p.price, p.description, p.category_id, c.name FROM products p "
+            "INNER JOIN categories c ON p.category_id = c.id")
+        basket['products'] = map_products(baskets_products_cursor)
         baskets += (basket,)
     return baskets
 
@@ -99,16 +106,40 @@ def get_categories(connection):
 def get_products(connection, category=None):
     if category is not None:
         cursor = connection.execute("SELECT p.id, p.name, p.price, p.description, p.category_id, c.name FROM products p "
-                     "INNER JOIN categories c ON p.category_id = c.id WHERE p.category_id = ?", [category['id']])
+                     "INNER JOIN categories c ON p.category_id = c.id WHERE p.category_id = ?", (category['id'],))
     else:
         cursor = connection.execute("SELECT p.id, p.name, p.price, p.description, p.category_id, c.name FROM products p "
                                     "INNER JOIN categories c ON p.category_id = c.id")
     return map_products(cursor)
 
 
+def get_product_by_id(connection, product_id=None):
+    if product_id is not None:
+        cursor = connection.execute("SELECT p.id, p.name, p.price, p.description, p.category_id, c.name FROM products p "
+                                    "INNER JOIN categories c ON p.category_id = c.id WHERE p.id = ?", (product_id,))
+        res = map_products(cursor)[0]
+        return res
+
+
 def get_baskets(connection):
     cursor = connection.execute("SELECT b.id, b.user FROM baskets b")
-    return map_baskets(cursor)
+    return map_baskets(cursor, connection)
+
+
+def get_or_create_basket_by_user(connection, user, products=()):
+
+    count_cursor = connection.execute("SELECT COUNT(b.id) FROM baskets b WHERE b.user = ?", (user,))
+    if count_cursor[0] == 0:
+        connection.execute("INSERT INTO baskets (user) VALUES (?)", (user,))
+
+    basket_id_cursor = connection.execute("SELECT b.id FROM baskets b WHERE b.user = ?", (user,))
+    if len(products) > 0:
+        for product in products:
+            connection.execute("INSERT INTO products_to_baskets (basket_id, product_id) VALUES (?, ?)", (basket_id_cursor[0], product['id']))
+
+    cursor = connection.execute("SELECT b.id, b.user FROM baskets b WHERE b.user = ?", (user,))
+
+    return map_baskets(cursor, connection)[0]
 
 
 def get_deliveries(connection):

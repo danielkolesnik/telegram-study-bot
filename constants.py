@@ -1,5 +1,6 @@
 from types import SimpleNamespace
 
+
 class NestedNamespace(SimpleNamespace):
     def __init__(self, dictionary, **kwargs):
         super().__init__(**kwargs)
@@ -14,21 +15,13 @@ BUTTONS = NestedNamespace({
     "MAIN": {
         "CATEGORIES": "Show Products By Categories",
         "PRODUCTS": "Show All Products",
-        "HOME": "Home"
+        "HOME": "Home",
+        "BASKET": "Check Cart"
     },
     "PRODUCT": {
         "INFO": "Info",
-        "ADD_TO_BUCKET": "Add to Cart",
+        "ADD_TO_BASKET": "Add to Cart",
         "BUY_NOW": "Buy now"
-    }
-})
-
-MESSAGES = NestedNamespace({
-    "MAIN": {
-        "ASK": "Hello there! What R u want me 2 do?"
-    },
-    "PRODUCT": {
-        ""
     }
 })
 
@@ -38,9 +31,10 @@ CALLBACK = NestedNamespace({
     },
     "PRODUCT": {
         "INFO": "PRODUCT@INFO",
-        "ADD_TO_BUCKET": "PRODUCT@BUCKET",
+        "ADD_TO_BASKET": "PRODUCT@BASKET",
         "BUY_NOW": "PRODUCT@BUY_NOW"
-    }
+    },
+    "ORDER": "ORDER"
 })
 
 STATES = NestedNamespace({
@@ -52,8 +46,45 @@ STATES = NestedNamespace({
         "ALL": "PRODUCTS@ALL",
         "BY_CATEGORY": "PRODUCTS@CATEGORIZED",
         "ONE": "PRODUCTS@ONE",
-        "ADD_TO_BUCKET": "PRODUCT@BUCKET",
+        "ADD_TO_BASKET": "PRODUCT@BASKET",
         "INFO": "PRODUCT@INFO",
         "BUY_NOW": "PRODUCT@BUY"
     },
+    "BASKET": {
+        "SHOW": "BASKET@SHOW"
+    },
+    "ANY": "ANY"
+})
+
+
+def create_info_message(product):
+    message = "{0}" \
+              "\n==================" \
+              "\n**Price**  |   {1}" \
+              "\n**Category**  |   {2}" \
+              "\n**Description    |   {3}**".format(product['name'], product['price'], product['category']['name'], product['description'])
+    return message
+
+
+def create_basket_message(basket):
+    message = "Your Cart:\n" \
+              "==================\n"
+    message += "Product    |    Price"
+    message += "-----------|---------"
+    price: float = 0
+    for product in basket['products']:
+        message += "{0}    |    {1}".format(product['name'], product['price'])
+        price += float(product['price'])
+    message += "TOTAL    |    {0}".format(price)
+    return message
+
+
+MESSAGES = NestedNamespace({
+    "MAIN": {
+        "ASK": "Hello there! What R u want me 2 do?"
+    },
+    "PRODUCT": {
+        "INFO": create_info_message,
+        "BASKET": create_basket_message
+    }
 })
